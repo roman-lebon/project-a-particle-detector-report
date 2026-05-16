@@ -163,7 +163,7 @@ double Calorimeter::detect(const Particle& particle) const {
 }
 \end{lstlisting}
 
-This was useful because the same calorimeter could be used first for predictable tests and then for a more realistic noisy response. In the perfect case, it provides a clear check that the detector logic works as expected. In the realistic case, the same interface can be used to discuss how measured energies change when a simple detector-resolution effect is introduced. The random-number generator and normal distribution are members of \texttt{Calorimeter}, rather than local variables inside \texttt{detect()}, so the random state is preserved between measurements.
+This was useful because the same calorimeter could be used first for predictable tests and then for a more realistic noisy response.. In the perfect case, it provides a clear check that the detector logic works as expected. In the realistic case, the same interface can be used to discuss how measured energies change when a simple detector-resolution effect is introduced. The random-number generator and normal distribution are members of \texttt{Calorimeter}, rather than local variables inside \texttt{detect()}, so the random state is preserved between measurements.
 
 A further design decision was to perform particle inference in the \texttt{Detector} class, rather than asking each particle to identify itself. Each sub-detector reports a measurement, and the detector combines the pattern of measurements into a likely particle type. This follows the working idea that particles have different detector ``fingerprints'': for example, a muon gives a signal in the tracker, calorimeter and muon chamber, while a neutrino gives no signal.
 
@@ -228,6 +228,56 @@ double Detector::calculate_missing_energy(const std::vector<std::shared_ptr<Part
 The final version therefore uses the largest single detector reading as the detector's best estimate of that particle's measured energy. This matches the simplification used elsewhere in the code: when a sub-detector detects a particle, it reports a whole-particle energy estimate rather than a partial energy deposit. Taking the maximum avoids double-counting and makes the missing-energy result physically sensible for the simplified model.
 
 \subsection{Advanced C++ Features}
+
+One important advanced C++ design choice was the use of smart pointers to make
+ownership clearer. The \texttt{Detector} stores its sub-detectors using
+\texttt{std::unique\_ptr} because each \texttt{Tracker}, \texttt{Calorimeter}
+or \texttt{MuonChamber} has one clear owner: the detector object that contains
+it. This also means that sub-detectors cannot accidentally be copied or shared
+between detector objects. In contrast, processed particles are stored using
+\texttt{std::shared\_ptr} because the same particle object can be created
+outside the detector and also recorded inside the detector's processed-particle
+history.
+
+\begin{lstlisting}[caption={Different ownership models in the \texttt{Detector} class.}, label={lst:smartpointers}]
+class Detector {
+private:
+    std::string name;
+    std::vector<std::unique_ptr<SubDetector>> sub_detectors;
+    std::vector<std::shared_ptr<Particle>> processed_particles;
+};
+\end{lstlisting}
+
+The same ownership idea appears when sub-detectors are added to a detector.
+The \texttt{add\_sub\_detector} function takes a \texttt{std::unique\_ptr} and
+then uses \texttt{std::move} to transfer ownership into the detector's internal
+vector. This makes the ownership transfer explicit: after a sub-detector has
+been added, it belongs to the detector container.
+
+\begin{lstlisting}[caption={Transferring ownership of a sub-detector into the detector.}, label={lst:addsubdetector}]
+void Detector::add_sub_detector(std::unique_ptr<SubDetector> sub_detector) {
+    sub_detectors.push_back(std::move(sub_detector));
+}
+\end{lstlisting}
+
+Polymorphism is used when a particle is processed through the detector. The
+\texttt{Detector::process} function loops over the stored sub-detectors through
+base-class pointers. It does not need to know whether a component is actually a
+\texttt{Tracker}, \texttt{Calorimeter} or \texttt{MuonChamber}; it simply calls
+the virtual \texttt{detect} function. C++ then selects the correct derived-class
+implementation at run time. This is the main reason that the
+\texttt{SubDetector} base class is useful in the detector container.
+
+\begin{lstlisting}[caption={Processing a particle through polymorphic sub-detectors.}, label={lst:processmap}]
+std::map<std::string, double> Detector::process(const Particle& particle) const {
+    std::map<std::string, double> results;
+    for (const auto& sd : sub_detectors) {
+        results[sd->get_name()] = sd->detect(particle);
+    }
+    return results;
+}
+\end{lstlisting}
+
 % TODO - smart pointers:
 % unique_ptr for owned objects such as sub-detectors and FourMomentum;
 % shared_ptr for particles that are stored and processed by Detector.
