@@ -51,9 +51,11 @@
 % must be evident here too, not just description.
 
 \section{Introduction}
-% TODO - what the project is (CMS-like detector simulation), the aim,
-% brief description of the physical system. Frame like a lab report's aim.
+This project implements a simplified particle detector simulation in C++, inspired by the Compact Muon Solenoid (CMS) experiment at the Large Hadron Collider (LHC). CMS is a general-purpose detector at one of the LHC collision points, designed to identify stable particles produced in collusions and measure their momenta and energies so that the collision can be reconstructed for further analysis \cite{cmsdetector}. The aim of this project was not to reproduce the full complexity of CMS, but instead to build a smaller object-orientated model that captures the same basic idea. That is, that particles pass through several detector layers and produce different patterns of response. 
 
+The physical model used in the program is based on a CMS-like detector made from sub-detector components. In the simulation, charged particles can be measured by a tracker, particles depositing energy can be measure by a calorimeter, and muons can pass through to muon chambers. Neutral weakly interacting particles (like neutrinos) are not directly detected in this simplified modeel, instead contributing to missing  energy. Therefore, the program compares each particle's true energy with the energy measured by each detector component, then uses the pattern of measurements to then infer the likely particle type.
+
+The coding aim was to represent this physical situation using an object-orientated C++ design. The code is built around two min class hierarchies - one for 
 % 2. CODE DESIGN AND IMPLEMENTATION  -- ~50% of length (~1250 words)
 % Rubric: emphasise advanced features; short, professionally-formatted
 % code snippets; class diagram; reasoning behind EVERY advanced-feature
@@ -116,6 +118,14 @@
 % CMS detector overview liekly reference
 
 \begin{thebibliography}{9}
+
+\bibitem{cmsdetector}
+CMS Collaboration,
+\textit{Detector},
+CERN, CMS Experiment.
+Available at: \url{https://cms.cern/detector}
+[Accessed May 2026].
+
 \end{thebibliography}
 
 \end{document}
