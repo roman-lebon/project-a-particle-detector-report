@@ -70,7 +70,7 @@ The design uses two main inheritance hierarchies, shown in Figs.~\ref{fig:partic
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.95\linewidth]{Particle.png}
+    \includegraphics[width=1.05\linewidth]{Particle.png}
     \caption{UML class diagram for the particle hierarchy. \texttt{Particle} is the abstract base class, with \texttt{Lepton}, \texttt{Photon} and \texttt{Hadron} as derived classes. \texttt{FourMomentum} is shown as an owned object of \texttt{Particle}.}
     \label{fig:particleuml}
 \end{figure}
@@ -79,7 +79,7 @@ The second hierarchy represents the detector layers, shown in Fig.~\ref{fig:dete
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.95\linewidth]{Particle.png}
+    \includegraphics[width=0.95\linewidth]{Detector.png}
     \caption{UML class diagram for the detector hierarchy. \texttt{SubDetector} is the abstract base class, with \texttt{Tracker}, \texttt{Calorimeter} and \texttt{MuonChamber} as derived classes. \texttt{Detector} is shown as a standalone container class.}
     \label{fig:detectoruml}
 \end{figure}
@@ -93,22 +93,17 @@ virtual double detect(const Particle& particle) const = 0; // SubDetector.h
 
 The same interface is then used throughout the program. For example, \texttt{Detector} can process any \texttt{Particle} through any stored \texttt{SubDetector} without needing separate loops for electrons, muons, photons or hadrons. This is the main reason the hierarchy is useful: the common base type keeps the controlling code simple, while virtual functions preserve the specialised behaviour of each derived class.
 
-% \begin{figure}[h]
-%     \centering
-%     \includegraphics[width=\textwidth]{uml_diagram.pdf}
-%     \caption{UML class diagram showing the particle hierarchy, sub-detector
-%     hierarchy, and ownership relationship between Particle and FourMomentum.}
-%     \label{fig:uml}
-% \end{figure}
-
 \subsection{Key Design Decisions}
-% TODO - explain FourMomentum as a separate class.
-% TODO - explain FourMomentum storage using std::array<double, 4>.
-% TODO - explain why detector_response was removed from particles and detection
-% logic belongs inside detector classes.
-% TODO - explain perfect versus realistic calorimeter mode.
-% TODO - explain inference logic from detector measurements.
-% TODO - explain missing energy calculation and the max-reading fix.
+
+A key design decision was to refactor \texttt{FourMomentum}. Earlier versionsused a dynamically allocated vector, but this was unnecessary because a four-momentum always has exactly four components. The final version uses \texttt{std::array<double, 4>}, which makes the fixed size explicit and avoids extra pointer-following just to access four numbers. This also made \texttt{FourMomentum} simpler to copy, instead of needing rule-of-five code to work around ownership of a dynamically allocated container.
+
+\begin{lstlisting}[caption={Fixed-size storage inside the \texttt{FourMomentum} class.}, label={lst:fourmomentumarray}]
+class FourMomentum {
+private:
+    std::array<double, 4> components; // [E, p_x, p_y, p_z]
+};
+\end{lstlisting}
+
 
 \subsection{Advanced C++ Features}
 % TODO - smart pointers:
