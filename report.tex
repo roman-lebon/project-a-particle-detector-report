@@ -280,33 +280,30 @@ else {
 
 Together, these features make the program safer and more extensible. Smart pointers express ownership, virtual functions allow the detector to work with different derived sub-detectors through one common interface, \texttt{std::map} keeps named detector readings organised, and exceptions make invalid input fail clearly instead of producing undefined or misleading detector output.
 
-% TODO - smart pointers:
-% unique_ptr for owned objects such as sub-detectors and FourMomentum;
-% shared_ptr for particles that are stored and processed by Detector.
-% TODO - polymorphism through base-class references/pointers.
-% TODO - file I/O using ParticleReader and particles.txt.
-% TODO - exceptions using std::invalid_argument for invalid input.
-% TODO - std::map for detector measurements.
-% TODO - <random> for realistic calorimeter noise.
-% TODO - use short code snippets only, not huge code dumps.
-
-% 3. RESULTS  -- ~15% of length (~375 words)
-% Rubric: illustrate how the code is used, including input AND output.
-
 \section{Results}
-% TODO - describe the input file particles.txt.
-% TODO - include a short excerpt of particles.txt showing the format.
-% TODO - show representative output from one or two particles.
-% TODO - include detector measurements from Tracker, Calorimeter and MuonChamber.
-% TODO - include one inference example.
-% TODO - include missing energy result, e.g. 15 MeV if this is still the final
-% output.
-% TODO - explain briefly why the output validates the design.
+The program was tested using the input file \texttt{particles.txt}. This file contains a mixture of charged leptons, neutrinos, taus, photons and hadrons, so that each part of the detector response is exercised. A short extract of the input format is shown in Listing~\ref{lst:particleinput}. The first word on each line gives the particle type, followed by its energy and momentum components, with extra fields where needed, such as neutrino flavour or hadron type.
 
-% 4. DISCUSSION AND CONCLUSIONS  -- ~10% of length (~250 words)
-% Rubric: concrete, implementable improvements. Do not just say "add more
-% features". The challenge mark wants explicit discussion of extending YOUR
-% OWN classes and design.
+\begin{lstlisting}[caption={Extract from \texttt{particles.txt}.}, label={lst:particleinput}]
+ELECTRON 0.511 0.1 0.2 0.0 0
+MUON 105.66 1.0 2.0 3.0 0
+NEUTRINO 10.0 5.0 3.0 1.0 0 muon
+PHOTON 60.0 20.0 30.0 10.0
+HADRON 938.27 100.0 50.0 30.0 1.0 938.27 0 proton
+\end{lstlisting}
+
+In \texttt{main()}, these particles are passed through a simple CMS-like detector containing an inner tracker, an electromagnetic calorimeter and an outer muon chamber. The output shows both the true particle energy and the measured response from each detector component. For example, a muon leaves a tracker signal, deposits a small fixed amount of energy in the calorimeter, and is also detected by the muon chamber:
+
+\begin{lstlisting}[caption={Example detector output for a muon.}, label={lst:muonoutput}]
+Four-momentum (E, p_x, p_y, p_z) = (105.66, 1, 2, 3) MeV
+
+Measurements:
+  ECAL: 2 MeV
+  InnerTracker: 105.66 MeV
+  OuterMuonChamber: 105.66 MeV
+Inferred particle: muon
+\end{lstlisting}
+
+This is the expected detector pattern for the simplified model: the muon is charged, so it is seen in the tracker, and it also reaches the muon chamber. The calorimeter response is smaller 
 
 \section{Discussion and Conclusions}
 % TODO - summarise whether the program met the aim.
