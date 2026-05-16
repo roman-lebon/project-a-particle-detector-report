@@ -103,7 +103,39 @@ private:
     std::array<double, 4> components; // [E, p_x, p_y, p_z]
 };
 \end{lstlisting}
+Each \texttt{Particle} still owns its \texttt{FourMomentum} through a \texttt{std::unique\_ptr}, so the particle controls the lifetime of its four-momentum object. However, the four numerical values inside\texttt{FourMomentum} are stored directly in the object using a fixed-size array. This separates object ownership from the internal representation of the physical data.
 
+\begin{lstlisting}[caption={Particle ownership of its \texttt{FourMomentum} object.}, label={lst:particlefourmomentum}]
+class Particle {
+private:
+    std::unique_ptr<FourMomentum> four_momentum;
+    double spin;
+    bool is_antiparticle;
+
+protected:
+    double rest_mass;
+};
+\end{lstlisting}
+
+Another important design decision was to move detector-response logic out of the particle classes. In the earlier assignment code, particles stored a hard-coded detector response string. That was useful before there were real detector classes, but it became redundant once \texttt{Tracker}, \texttt{Calorimeter} and \texttt{MuonChamber} were implemented. In the final design, particles store physical properties, while each sub-detector decides what it can measure.
+
+\begin{lstlisting}[caption={Detector-specific response logic in \texttt{Tracker::detect}.}, label={lst:trackerdetect}]
+double Tracker::detect(const Particle& particle) const {
+    const Lepton* lepton = dynamic_cast<const Lepton*>(&particle);
+    if (lepton != nullptr && lepton->get_charge() != 0) {
+        return particle.get_E();
+    }
+
+    const Hadron* hadron = dynamic_cast<const Hadron*>(&particle);
+    if (hadron != nullptr && hadron->get_charge() != 0) {
+        return particle.get_E();
+    }
+
+    return 0.0;
+}
+\end{lstlisting}
+
+The tracker uses \texttt{dynamic\_cast} to check whether the base-class \texttt{Particle} reference is actually a \texttt{Lepton} or \texttt{Hadron} with non-zero charge. An alternative would have been to add a virtual \texttt{is\_charged()} function to \texttt{Particle}, but that would require modifying every particle class. The runtime check is less elegant, but it keeps the change local to the detector classes and is used consistently across the sub-detector hierarchy.
 
 \subsection{Advanced C++ Features}
 % TODO - smart pointers:
