@@ -229,15 +229,7 @@ The final version therefore uses the largest single detector reading as the dete
 
 \subsection{Advanced C++ Features}
 
-One important advanced C++ design choice was the use of smart pointers to make
-ownership clearer. The \texttt{Detector} stores its sub-detectors using
-\texttt{std::unique\_ptr} because each \texttt{Tracker}, \texttt{Calorimeter}
-or \texttt{MuonChamber} has one clear owner: the detector object that contains
-it. This also means that sub-detectors cannot accidentally be copied or shared
-between detector objects. In contrast, processed particles are stored using
-\texttt{std::shared\_ptr} because the same particle object can be created
-outside the detector and also recorded inside the detector's processed-particle
-history.
+One important advanced C++ design choice was the use of smart pointers to make ownership clearer. The \texttt{Detector} stores its sub-detectors using \texttt{std::unique\_ptr} because each \texttt{Tracker}, \texttt{Calorimeter} or \texttt{MuonChamber} has one clear owner: the detector object that contains it. This also means that sub-detectors cannot accidentally be copied or shared between detector objects. In contrast, processed particles are stored using \texttt{std::shared\_ptr} because the same particle object can be created outside the detector and also recorded inside the detector's processed-particle history.
 
 \begin{lstlisting}[caption={Different ownership models in the \texttt{Detector} class.}, label={lst:smartpointers}]
 class Detector {
@@ -248,11 +240,7 @@ private:
 };
 \end{lstlisting}
 
-The same ownership idea appears when sub-detectors are added to a detector.
-The \texttt{add\_sub\_detector} function takes a \texttt{std::unique\_ptr} and
-then uses \texttt{std::move} to transfer ownership into the detector's internal
-vector. This makes the ownership transfer explicit: after a sub-detector has
-been added, it belongs to the detector container.
+The same ownership idea appears when sub-detectors are added to a detector. The \texttt{add\_sub\_detector} function takes a \texttt{std::unique\_ptr} and then uses \texttt{std::move} to transfer ownership into the detector's internal vector. This makes the ownership transfer explicit: after a sub-detector has been added, it belongs to the detector container.
 
 \begin{lstlisting}[caption={Transferring ownership of a sub-detector into the detector.}, label={lst:addsubdetector}]
 void Detector::add_sub_detector(std::unique_ptr<SubDetector> sub_detector) {
@@ -260,13 +248,7 @@ void Detector::add_sub_detector(std::unique_ptr<SubDetector> sub_detector) {
 }
 \end{lstlisting}
 
-Polymorphism is used when a particle is processed through the detector. The
-\texttt{Detector::process} function loops over the stored sub-detectors through
-base-class pointers. It does not need to know whether a component is actually a
-\texttt{Tracker}, \texttt{Calorimeter} or \texttt{MuonChamber}; it simply calls
-the virtual \texttt{detect} function. C++ then selects the correct derived-class
-implementation at run time. This is the main reason that the
-\texttt{SubDetector} base class is useful in the detector container.
+Polymorphism is used when a particle is processed through the detector. The \texttt{Detector::process} function loops over the stored sub-detectors through base-class pointers. It does not need to know whether a component is actually a \texttt{Tracker}, \texttt{Calorimeter} or \texttt{MuonChamber}; it simply calls the virtual \texttt{detect} function. C++ then selects the correct derived-class implementation at run time. This is the main reason that the \texttt{SubDetector} base class is useful in the detector container.
 
 \begin{lstlisting}[caption={Processing a particle through polymorphic sub-detectors.}, label={lst:processmap}]
 std::map<std::string, double> Detector::process(const Particle& particle) const {
@@ -277,6 +259,26 @@ std::map<std::string, double> Detector::process(const Particle& particle) const 
     return results;
 }
 \end{lstlisting}
+The return type is a \texttt{std::map<std::string, double>}, which stores each measurement using the sub-detector name as the key and the measured energy as the value. This is useful because later functions, such as particle inference, can look up readings from named detector layers rather than depending on the order of values in a vector. A vector would be shorter, but it would make the code less clear because the meaning of each entry would depend on its position.
+
+File input is handled by \texttt{ParticleReader}, so the set of simulated particles can be changed by editing \texttt{particles.txt} rather than changing and recompiling \texttt{main.cpp}. The reader opens the file, reads it line by line, uses the first token as the particle tag, and then constructs the corresponding derived particle object. This keeps \texttt{main()} shorter and separates input parsing from the detector simulation itself.
+
+\begin{lstlisting}[caption={Opening the particle input file and reporting failure.}, label={lst:filereader}]
+std::ifstream file(filename);
+if (!file) {
+    throw std::invalid_argument("ParticleReader: could not open file " + filename);
+}
+\end{lstlisting}
+
+Exceptions are used for invalid input rather than silently continuing or calling \texttt{exit(1)}. This was a deliberate change because the particle and detector classes should behave like reusable library code: if something goes wrong, the calling code should be able to catch the exception and decide how to respond. The same approach is used for malformed particle lines and unknown particle tags.
+
+\begin{lstlisting}[caption={Rejecting an unknown particle tag from the input file.}, label={lst:unknowntag}]
+else {
+    throw std::invalid_argument("ParticleReader: unknown particle tag - " + tag);
+}
+\end{lstlisting}
+
+Together, these features make the program safer and more extensible. Smart pointers express ownership, virtual functions allow the detector to work with different derived sub-detectors through one common interface, \texttt{std::map} keeps named detector readings organised, and exceptions make invalid input fail clearly instead of producing undefined or misleading detector output.
 
 % TODO - smart pointers:
 % unique_ptr for owned objects such as sub-detectors and FourMomentum;
