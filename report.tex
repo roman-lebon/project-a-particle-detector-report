@@ -163,6 +163,70 @@ double Calorimeter::detect(const Particle& particle) const {
 }
 \end{lstlisting}
 
+This was useful because the same calorimeter could be used first for predictable tests and then for a more realistic noisy response. In the perfect case, it provides a clear check that the detector logic works as expected. In the realistic case, the same interface can be used to discuss how measured energies change when a simple detector-resolution effect is introduced. The random-number generator and normal distribution are members of \texttt{Calorimeter}, rather than local variables inside \texttt{detect()}, so the random state is preserved between measurements.
+
+A further design decision was to perform particle inference in the \texttt{Detector} class, rather than asking each particle to identify itself. Each sub-detector reports a measurement, and the detector combines the pattern of measurements into a likely particle type. This follows the working idea that particles have different detector ``fingerprints'': for example, a muon gives a signal in the tracker, calorimeter and muon chamber, while a neutrino gives no signal.
+
+\begin{lstlisting}[caption={Rule-based particle inference from detector measurements.}, label={lst:inferparticle}]
+std::string Detector::infer_particle(const std::map<std::string, double>& measurements) {
+    // Look up each sub-detector reading (defaults to 0 if the detector isnt in the map)
+    double tracker = measurements.count("InnerTracker") ? measurements.at("InnerTracker") : 0.0;
+    double ecal = measurements.count("ECAL") ? measurements.at("ECAL") : 0.0;
+    double muon_chamber = measurements.count("OuterMuonChamber") ? measurements.at("OuterMuonChamber") : 0.0;
+
+    // Muon: hits all three layers
+    if (tracker > 0 && ecal > 0 && muon_chamber > 0) {
+        return "muon";
+    }
+
+    // Electron or charged hadron: tracker + calorimeter, no muon chamber hit
+    if (tracker > 0 && ecal > 0 && muon_chamber == 0) {
+        return "electron or charged hadron";
+    }
+
+    // Photon or neutral hadron: calorimeter only
+    if (tracker == 0 && ecal > 0 && muon_chamber == 0) {
+        return "photon or neutral hadron";
+    }
+
+    // Neutrino: invisible, nothing hit
+    if (tracker == 0 && ecal == 0 && muon_chamber == 0) {
+        return "neutrino (invisible)";
+    }
+
+    return "unknown";
+}
+\end{lstlisting}
+
+This function is \texttt{static} because the inference only depends on the measurement map passed into it. It does not need to access the internal state of a particular \texttt{Detector} object. The limitation of this design is that it can only distinguish particles as far as the detector model allows. Since the simulation has only one calorimeter class, it cannot separate electrons from charged hadrons, or photons from neutral hadrons. This is why the function returns combined categories for those cases.
+
+The missing-energy calculation was another important design decision. The aim was to compare the total true energy entering the detector with the total energy measured by the detector, so that invisible particles such as neutrinos appear as missing energy. My first approach would have been to sum every sub-detector reading for each particle, but that double-counts particles seen by more than one layer. For example, a charged hadron can be measured by both the tracker and calorimeter, even though it only has one true energy.
+
+\begin{lstlisting}[caption={Using the largest single detector reading to avoid double-counting.}, label={lst:missingenergy}]
+double Detector::calculate_missing_energy(const std::vector<std::shared_ptr<Particle>>& particles) const {
+    double total_true_energy = 0.0;
+    double total_measured_energy = 0.0;
+
+    for (const auto& p : particles) {
+        total_true_energy += p->get_E();
+
+        // The detector's measurement of this particle is its best single reading
+        std::map<std::string, double> results = process(*p);
+        double best_reading = 0.0;
+        for (const auto& result : results) {
+            if (result.second > best_reading) {
+                best_reading = result.second;
+            }
+        }
+        total_measured_energy += best_reading;
+    }
+
+    return total_true_energy - total_measured_energy;
+}
+\end{lstlisting}
+
+The final version therefore uses the largest single detector reading as the detector's best estimate of that particle's measured energy. This matches the simplification used elsewhere in the code: when a sub-detector detects a particle, it reports a whole-particle energy estimate rather than a partial energy deposit. Taking the maximum avoids double-counting and makes the missing-energy result physically sensible for the simplified model.
+
 \subsection{Advanced C++ Features}
 % TODO - smart pointers:
 % unique_ptr for owned objects such as sub-detectors and FourMomentum;
