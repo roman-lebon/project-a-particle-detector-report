@@ -65,17 +65,33 @@ The final program reads particles from an input text file, constructs a CMS-like
 \section{Code Design and Implementation}
 
 \subsection{Class Hierarchies}
-The design uses two main inheritance hierarchies, shown in Fig.~\ref{fig:uml}. The first hierarchy represents particles. The abstract \texttt{Particle} class stores the quantities shared by all particles, including four-momentum, spin, antiparticle status and rest mass. More specific particle classes then add only the data that they need: \texttt{Lepton} stores lepton number and charge, \texttt{Tau} adds a lifetime, \texttt{Neutrino} adds a flavour, and \texttt{Photon} and \texttt{Hadron} derive directly from \texttt{Particle}. This avoids repeating the same physical data in every particle class.
-\begin{figure}
+
+The design uses two main inheritance hierarchies, shown in Figs.~\ref{fig:particleuml} and \ref{fig:detectoruml}. The first hierarchy represents particles. The abstract \texttt{Particle} class stores the quantities shared by all particles, including four-momentum, spin, antiparticle status and rest mass. More specific particle classes then add only the data that they need: \texttt{Lepton} stores lepton number and charge, \texttt{Tau} adds a lifetime, \texttt{Neutrino} adds a flavour, and \texttt{Photon} and \texttt{Hadron} derive directly from \texttt{Particle}. This avoids repeating the same physical data in every particle class.
+
+\begin{figure}[h]
     \centering
-    \includegraphics[width=1\linewidth]{Particle.png}
-    \caption{UML class diagram showing the particle hierarchy, sub-detector
-    hierarchy, and the relationship between \texttt{Particle} and}
-    \label{fig:uml}
+    \includegraphics[width=0.95\linewidth]{Particle.png}
+    \caption{UML class diagram for the particle hierarchy. \texttt{Particle} is the abstract base class, with \texttt{Lepton}, \texttt{Photon} and \texttt{Hadron} as derived classes. \texttt{FourMomentum} is shown as an owned object of \texttt{Particle}.}
+    \label{fig:particleuml}
 \end{figure}
-% UML diagram:
-% Export the final UML as a PDF or PNG and place it in the report repo.
-% Suggested filename: uml_diagram.pdf or uml_diagram.png.
+
+The second hierarchy represents the detector layers, shown in Fig.~\ref{fig:detectoruml}. The abstract \texttt{SubDetector} class provides a common interface for any detector component, while \texttt{Tracker}, \texttt{Calorimeter} and \texttt{MuonChamber} implement different physical responses. This matches the structure of the problem: the program should be able to store and use detector components generically, but the measurement rule depends on which detector component is actually being used.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Particle.png}
+    \caption{UML class diagram for the detector hierarchy. \texttt{SubDetector} is the abstract base class, with \texttt{Tracker}, \texttt{Calorimeter} and \texttt{MuonChamber} as derived classes. \texttt{Detector} is shown as a standalone container class.}
+    \label{fig:detectoruml}
+\end{figure}
+
+The base classes are abstract because a generic particle or generic sub-detector is not physically useful on its own. A particle must be a more specific type, and a detector component must define how it measures particles. The pure virtual functions force this rule in the code.
+
+\begin{lstlisting}[caption={Pure virtual functions from \texttt{Particle.h} and \texttt{SubDetector.h}.}, label={lst:abstractinterfaces}]
+virtual void print() const = 0; // Particle.h
+virtual double detect(const Particle& particle) const = 0; // SubDetector.h
+\end{lstlisting}
+
+The same interface is then used throughout the program. For example, \texttt{Detector} can process any \texttt{Particle} through any stored \texttt{SubDetector} without needing separate loops for electrons, muons, photons or hadrons. This is the main reason the hierarchy is useful: the common base type keeps the controlling code simple, while virtual functions preserve the specialised behaviour of each derived class.
 
 % \begin{figure}[h]
 %     \centering
