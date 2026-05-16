@@ -303,24 +303,37 @@ Measurements:
 Inferred particle: muon
 \end{lstlisting}
 
-This is the expected detector pattern for the simplified model: the muon is charged, so it is seen in the tracker, and it also reaches the muon chamber. The calorimeter response is smaller 
+This is the expected detector pattern for the simplified model: the muon is charged, so it is seen in the tracker, and it also reaches the muon chamber. The calorimeter response is smaller because the code treats muons as minimum-ionising particles rather than particles that deposit their full energy in the calorimeter.
+
+The photon output gives a different pattern. It produces no tracker or muon chamber signal, but it is measured by the calorimeter:
+
+\begin{lstlisting}[caption={Example detector output for a photon.}, label={lst:photonoutput}]
+Four-momentum (E, p_x, p_y, p_z) = (60, 20, 30, 10) MeV
+
+Measurements:
+  ECAL: 60 MeV
+  InnerTracker: 0 MeV
+  OuterMuonChamber: 0 MeV
+Inferred particle: photon or neutral hadron
+\end{lstlisting}
+
+The inference result is deliberately not just ``photon'', because in this detector model a neutral hadron can give the same pattern: calorimeter energy without a track or muon-chamber hit. This shows both that the inference logic is working and that the simplified detector has limited particle-identification power.
+
+The missing-energy result provides a useful check on the implementation. The input file contains two neutrinos with energies 10 MeV and 5 MeV. Since neutrinos are invisible to all three sub-detectors in this simulation, the program returns:
+
+\begin{lstlisting}[caption={Missing-energy output.}, label={lst:missingenergyoutput}]
+[Missing energy]
+Total missing energy = 15 MeV
+(energy carried away invisibly, mostly by neutrinos)
+\end{lstlisting}
+
+This is a clean validation result because the calculated missing energy matches the total true energy of the two neutrinos exactly. The final summary also shows that all 16 particles from the input file were processed and classified, with no unknown cases in this test sample.
 
 \section{Discussion and Conclusions}
-% TODO - summarise whether the program met the aim.
-% TODO - discuss limitations:
-% no ECAL/HCAL split, so calorimeter response is simplified;
-% tau decay products are not simulated;
-% realistic calorimeter noise is simple Gaussian noise;
-% inference logic is rule-based and could be generalised.
-% TODO - discuss concrete extensions:
-% split Calorimeter into ECAL and HCAL;
-% add tau decay products;
-% add more detailed detector resolution;
-% replace detector-name checks in inference with a more general interface.
-% TODO - explicitly mention how the class hierarchy makes these extensions
-% possible.
 
-% REFERENCES  -- not counted in word limit. Use one consistent style.
+The program meets the main aim of the project: it builds a simplified particle-detector simulation using object-oriented C++. The particle hierarchy and sub-detector hierarchy make the design close to the physical system being modelled, while the generic \texttt{Detector} class allows different detector components to be stored and used through a common interface. The output shows that different particle types produce different detector-response patterns, and the missing-energy result gives a simple numerical check that invisible particles are being handled correctly.
+
+The main limitation is that the detector model is still very simplified. The code has
 
 \begin{thebibliography}{9}
 
