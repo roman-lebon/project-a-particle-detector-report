@@ -38,6 +38,7 @@
 
 \begin{document}
 \maketitle
+
 % ABSTRACT  -- ~100-150 words. Write LAST.
 % Rubric: states what was built, which OOP concepts were used, one result.
 % Must NOT just restate the brief. Must show reasoning, not be purely descriptive.
@@ -45,21 +46,16 @@
 % TODO
 \end{abstract}
 
-% 1. INTRODUCTION  -- ~20% of length (~500 words)
-% Rubric: aim and structure understandable by a reader who does NOT know
-% the code. Not too complex, not identical to the abstract. Reasoning
-% must be evident here too, not just description.
-
 \section{Introduction}
-This project implements a simplified particle detector simulation in C++, inspired by the Compact Muon Solenoid (CMS) experiment at the Large Hadron Collider (LHC). CMS is a general-purpose detector at one of the LHC collision points, designed to identify stable particles produced in collusions and measure their momenta and energies so that the collision can be reconstructed for further analysis \cite{cmsdetector}. The aim of this project was not to reproduce the full complexity of CMS, but instead to build a smaller object-orientated model that captures the same basic idea. That is, that particles pass through several detector layers and produce different patterns of response. 
 
-The physical model used in the program is based on a CMS-like detector made from sub-detector components. In the simulation, charged particles can be measured by a tracker, particles depositing energy can be measure by a calorimeter, and muons can pass through to muon chambers. Neutral weakly interacting particles (like neutrinos) are not directly detected in this simplified modeel, instead contributing to missing  energy. Therefore, the program compares each particle's true energy with the energy measured by each detector component, then uses the pattern of measurements to then infer the likely particle type.
+This project implements a simplified particle detector simulation in C++, inspired by the Compact Muon Solenoid (CMS) experiment at the Large Hadron Collider (LHS). CMS is a general-purpose detector at one of the LHC collision points, designed to identify stable particles produced in collisions and measure their momenta and energies so that the collision can be reconstructed for further analysis \cite{cmsdetector}. The aim of this project was not to reproduce the full complexity of CMS, but to build a smaller object-oriented model that captures the same basic idea: particles pass through several detector layers and produce different patterns of response. The physical model used in the program is based on a CMS-like detector made from sub-detector components. In the simulation, charged particles can be measured by a tracker, particles that deposit energy can be measured by a calorimeter, and muons can pass through to muon chambers. Neutral weakly interacting particles, such as neutrinos, are not directly detected in this simplified model and instead contribute to missing energy. The program therefore compares each particle's true energy with the energy measured by each detector component, then uses the pattern of measurements to infer the likely particle type.
 
-The coding aim was to represent this physical situation using an object-orientated C++ design. The code is built around two min class hierarchies - one for particles and one for detector components. The particle hierarchy stores common physcial quantities such as four-momentum, spin and rest mass, whilst derived classes represent more specific particle types such as electrons, muons, taus, neutrinos, photons and hadrons. The detector hierarchy represent sub-detectors such the tracker, calorimeter and muon chamber - each of which implements its own detection rule. 
+The programming aim was to represent this physical situation using an object-oriented C++ design. The code is built around two main class hierarchies: one for particles and one for detector components. The particle hierarchy stores common physical quantities such as four-momentum, spin and rest mass, while derived classes represent specific particle types such as electrons, muons, taus, neutrinos, photons and hadrons. The detector hierarchy represents sub-detectors such as the tracker, calorimeter and muon chamber, each of which implements its own detection rule.
 
-The above structure was chosen because the problem naturally involves specialised behaviour and shared interfaces and specialised behaviour. All particles share common physical properties, but different particle types need different additional data (such as lepton number, charge, lifetime and-or flavour). Similarly, all suub-detectors can attempt to measure a particle, but each sub-detector responds differntly. Thus, abstract base classes and virtual functions allow the main detector code to treat particles and sub detectors more generically, while still calling the correct derived class behaviour during run time. The final program reads particles from an input txt file, then constructing a CMS-like detector from sub-detector components, passes each particle through a detector, then printing the true and measured energies, inferring the liekly particle type from the detector signals and calculating missing energy from invisible particles. Additional functionality includes a realsitic calorimeter mode with Gaussian (normal) noise and exception handling for a particle input that is invalid. 
+This structure was chosen because the problem naturally involves both shared properties, but different particle types need different additional data, such as lepton number, charge, lifetime or flavour. Similarly, all sub-detectors can attempt to measure a particle, but each sub-detector responds differently. Abstract base classes and virtual functions therefore allow the main detector code to treat particles and sub-detectors generically, while still calling the correct derived-class behaviour at run time.
 
-The next part of the paper will look
+The final program reads particles from an input text file, constructs a CMS-like detector from sub-detector components, passes each particle through the detector, prints the true and measured energies, infers the likely particle type from the detector signals, and calculates missing energy from invisible particles. Additional functionality includes a realistic calorimeter mode with Gaussian noise and exception handling for invalid particle input.
+
 % 2. CODE DESIGN AND IMPLEMENTATION  -- ~50% of length (~1250 words)
 % Rubric: emphasise advanced features; short, professionally-formatted
 % code snippets; class diagram; reasoning behind EVERY advanced-feature
@@ -69,20 +65,45 @@ The next part of the paper will look
 \section{Code Design and Implementation}
 
 \subsection{Class Hierarchies}
-% TODO - the two hierarchies (particles, sub-detectors), why abstract
-% base classes. Inheritance diagram goes here.
+The design uses two main inheritance hierarchies, shown in Fig.~\ref{fig:uml}. The first hierarchy represents particles. The abstract \texttt{Particle} class stores the quantities shared by all particles, including four-momentum, spin, antiparticle status and rest mass. More specific particle classes then add only the data that they need: \texttt{Lepton} stores lepton number and charge, \texttt{Tau} adds a lifetime, \texttt{Neutrino} adds a flavour, and \texttt{Photon} and \texttt{Hadron} derive directly from \texttt{Particle}. This avoids repeating the same physical data in every particle class.
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{Particle.png}
+    \caption{UML class diagram showing the particle hierarchy, sub-detector
+    hierarchy, and the relationship between \texttt{Particle} and}
+    \label{fig:uml}
+\end{figure}
+% UML diagram:
+% Export the final UML as a PDF or PNG and place it in the report repo.
+% Suggested filename: uml_diagram.pdf or uml_diagram.png.
 
-% Inheritance diagram - proper UML, made in draw.io, exported as PDF/PNG.
+% \begin{figure}[h]
+%     \centering
+%     \includegraphics[width=\textwidth]{uml_diagram.pdf}
+%     \caption{UML class diagram showing the particle hierarchy, sub-detector
+%     hierarchy, and ownership relationship between Particle and FourMomentum.}
+%     \label{fig:uml}
+% \end{figure}
 
 \subsection{Key Design Decisions}
-% TODO - FourMomentum as std::array, perfect/realistic detector split,
-% inference logic, the missing-energy max-reading fix. Each: decision +
-% why + what the alternative was.
+% TODO - explain FourMomentum as a separate class.
+% TODO - explain FourMomentum storage using std::array<double, 4>.
+% TODO - explain why detector_response was removed from particles and detection
+% logic belongs inside detector classes.
+% TODO - explain perfect versus realistic calorimeter mode.
+% TODO - explain inference logic from detector measurements.
+% TODO - explain missing energy calculation and the max-reading fix.
 
 \subsection{Advanced C++ Features}
-% TODO - smart pointers (unique_ptr vs shared_ptr - the deliberate
-% contrast), <random> for noise, exceptions, static, std::map, file I/O.
-% Each with a SHORT snippet and specific reasoning.
+% TODO - smart pointers:
+% unique_ptr for owned objects such as sub-detectors and FourMomentum;
+% shared_ptr for particles that are stored and processed by Detector.
+% TODO - polymorphism through base-class references/pointers.
+% TODO - file I/O using ParticleReader and particles.txt.
+% TODO - exceptions using std::invalid_argument for invalid input.
+% TODO - std::map for detector measurements.
+% TODO - <random> for realistic calorimeter noise.
+% TODO - use short code snippets only, not huge code dumps.
 
 % 3. RESULTS  -- ~15% of length (~375 words)
 % Rubric: illustrate how the code is used, including input AND output.
@@ -118,8 +139,6 @@ The next part of the paper will look
 % possible.
 
 % REFERENCES  -- not counted in word limit. Use one consistent style.
-% Add references once the prose is written.
-% CMS detector overview liekly reference
 
 \begin{thebibliography}{9}
 
