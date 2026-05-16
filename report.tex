@@ -33,34 +33,27 @@
 \lstset{style=cpp}
 
 \title{A Particle Detector Simulation in C++}
-\author{Roman le Bon \\ University of Manchester \\ PHYS30762 Object-Oriented Programming in C++}
+\author{Roman le Bon, ID: 11423027\\ University of Manchester \\ PHYS30762 Object-Oriented Programming in C++}
 \date{\today}
 
 \begin{document}
 \maketitle
 
-% ABSTRACT  -- ~100-150 words. Write LAST.
-% Rubric: states what was built, which OOP concepts were used, one result.
-% Must NOT just restate the brief. Must show reasoning, not be purely descriptive.
 \begin{abstract}
-% TODO
+This project developed a simplified C++ simulation of a CMS-like particle detector. The program models particles passing through tracker, calorimeter and muon-chamber components, comparing their true energy with the measured detector response. The design uses two main inheritance hierarchies: one for particles and one for sub-detectors, with abstract base classes, virtual functions and polymorphism used to process different derived objects through a common interface. Smart pointers, file input, exceptions, \texttt{std::map} and random Gaussian noise were used to make the simulation safer and more configurable. Additional functionality included particle inference from detector-response patterns and missing-energy calculation for invisible particles. In the final test sample, all 16 particles from the input file were processed, no particles were classified as unknown, and the calculated missing energy was 15 MeV, matching the total energy of the two neutrinos in the file.
 \end{abstract}
 
 \section{Introduction}
 
-This project implements a simplified particle detector simulation in C++, inspired by the Compact Muon Solenoid (CMS) experiment at the Large Hadron Collider (LHS). CMS is a general-purpose detector at one of the LHC collision points, designed to identify stable particles produced in collisions and measure their momenta and energies so that the collision can be reconstructed for further analysis \cite{cmsdetector}. The aim of this project was not to reproduce the full complexity of CMS, but to build a smaller object-oriented model that captures the same basic idea: particles pass through several detector layers and produce different patterns of response. The physical model used in the program is based on a CMS-like detector made from sub-detector components. In the simulation, charged particles can be measured by a tracker, particles that deposit energy can be measured by a calorimeter, and muons can pass through to muon chambers. Neutral weakly interacting particles, such as neutrinos, are not directly detected in this simplified model and instead contribute to missing energy. The program therefore compares each particle's true energy with the energy measured by each detector component, then uses the pattern of measurements to infer the likely particle type.
+This project implements a simplified particle detector simulation in C++, inspired by the Compact Muon Solenoid (CMS) experiment at the Large Hadron Collider (LHC). CMS is a general-purpose detector at one of the LHC collision points, designed to identify stable particles produced in collisions and measure their momenta and energies so that the collision can be reconstructed for further analysis \cite{cmsdetector}. The aim of this project was not to reproduce the full complexity of CMS, but to build a smaller object-oriented model that captures the same basic idea: particles pass through several detector layers and produce different patterns of response. In the simulation, charged particles can be measured by a tracker, particles that deposit energy can be measured by a calorimeter, and muons can pass through to muon chambers. Neutral weakly interacting particles, such as neutrinos, are not directly detected in this simplified model and instead contribute to missing energy. The program therefore compares each particle's true energy with the energy measured by each detector component, then uses the pattern of measurements to infer the likely particle type.
 
-The programming aim was to represent this physical situation using an object-oriented C++ design. The code is built around two main class hierarchies: one for particles and one for detector components. The particle hierarchy stores common physical quantities such as four-momentum, spin and rest mass, while derived classes represent specific particle types such as electrons, muons, taus, neutrinos, photons and hadrons. The detector hierarchy represents sub-detectors such as the tracker, calorimeter and muon chamber, each of which implements its own detection rule.
+The code is built around two main class hierarchies: one for particles and one for detector components. The particle hierarchy stores common physical quantities such as four-momentum, spin and rest mass, while derived classes represent specific types such as electrons, muons, taus, neutrinos, photons and hadrons. The detector hierarchy represents sub-detectors --- the tracker, calorimeter and muon chamber --- each implementing its own detection rule.
 
-This structure was chosen because the problem naturally involves both shared properties, but different particle types need different additional data, such as lepton number, charge, lifetime or flavour. Similarly, all sub-detectors can attempt to measure a particle, but each sub-detector responds differently. Abstract base classes and virtual functions therefore allow the main detector code to treat particles and sub-detectors generically, while still calling the correct derived-class behaviour at run time.
+This structure was chosen because the problem naturally involves shared properties alongside type-specific data: different particle types need different additional data, such as lepton number, charge, lifetime or flavour. Similarly, all sub-detectors can attempt to measure a particle, but each responds differently. Abstract base classes and virtual functions therefore allow the main detector code to treat particles and sub-detectors generically, while still calling the correct derived-class behaviour at run time.
 
-The final program reads particles from an input text file, constructs a CMS-like detector from sub-detector components, passes each particle through the detector, prints the true and measured energies, infers the likely particle type from the detector signals, and calculates missing energy from invisible particles. Additional functionality includes a realistic calorimeter mode with Gaussian noise and exception handling for invalid particle input.
+The final program reads particles from an input text file, constructs a CMS-like detector from sub-detector components, passes each particle through it, prints the true and measured energies, infers the likely particle type, and calculates missing energy from invisible particles. Additional functionality includes a realistic calorimeter mode with Gaussian noise and exception handling for invalid input.
 
-% 2. CODE DESIGN AND IMPLEMENTATION  -- ~50% of length (~1250 words)
-% Rubric: emphasise advanced features; short, professionally-formatted
-% code snippets; class diagram; reasoning behind EVERY advanced-feature
-% decision (2 marks rely on this); reflection tied to actual classes.
-% This is where the working notes get reshaped into argued prose.
+% 2. CODE DESIGN AND IMPLEMENTATION
 
 \section{Code Design and Implementation}
 
@@ -91,11 +84,11 @@ virtual void print() const = 0; // Particle.h
 virtual double detect(const Particle& particle) const = 0; // SubDetector.h
 \end{lstlisting}
 
-The same interface is then used throughout the program. For example, \texttt{Detector} can process any \texttt{Particle} through any stored \texttt{SubDetector} without needing separate loops for electrons, muons, photons or hadrons. This is the main reason the hierarchy is useful: the common base type keeps the controlling code simple, while virtual functions preserve the specialised behaviour of each derived class.
+The same interface is then used throughout the program. For example, \texttt{Detector} can process any \texttt{Particle} through any stored \texttt{SubDetector} without needing separate loops for electrons, muons, photons or hadrons. The common base type keeps the controlling code simple, while virtual functions preserve the specialised behaviour of each derived class.
 
 \subsection{Key Design Decisions}
 
-A key design decision was to refactor \texttt{FourMomentum}. Earlier versionsused a dynamically allocated vector, but this was unnecessary because a four-momentum always has exactly four components. The final version uses \texttt{std::array<double, 4>}, which makes the fixed size explicit and avoids extra pointer-following just to access four numbers. This also made \texttt{FourMomentum} simpler to copy, instead of needing rule-of-five code to work around ownership of a dynamically allocated container.
+A key design decision was to refactor \texttt{FourMomentum}. Earlier versions used a dynamically allocated vector, but this was unnecessary because a four-momentum always has exactly four components. The final version uses \texttt{std::array<double, 4>}, which makes the fixed size explicit and avoids extra pointer-following just to access four numbers. This also made \texttt{FourMomentum} itself trivially copyable, since a fixed-size array needs no custom copy logic.
 
 \begin{lstlisting}[caption={Fixed-size storage inside the \texttt{FourMomentum} class.}, label={lst:fourmomentumarray}]
 class FourMomentum {
@@ -103,7 +96,8 @@ private:
     std::array<double, 4> components; // [E, p_x, p_y, p_z]
 };
 \end{lstlisting}
-Each \texttt{Particle} still owns its \texttt{FourMomentum} through a \texttt{std::unique\_ptr}, so the particle controls the lifetime of its four-momentum object. However, the four numerical values inside\texttt{FourMomentum} are stored directly in the object using a fixed-size array. This separates object ownership from the internal representation of the physical data.
+
+Each \texttt{Particle} owns its \texttt{FourMomentum} through a \texttt{std::unique\_ptr}, so the particle controls the lifetime of its four-momentum object. Because a \texttt{unique\_ptr} member is not copyable, \texttt{Particle} is not copyable by default, so it implements the full rule of five explicitly. The copy operations deep-copy the four-momentum into a new \texttt{unique\_ptr} so that copied particles do not share momentum state, while the move operations transfer the pointer instead.
 
 \begin{lstlisting}[caption={Particle ownership of its \texttt{FourMomentum} object.}, label={lst:particlefourmomentum}]
 class Particle {
@@ -163,7 +157,7 @@ double Calorimeter::detect(const Particle& particle) const {
 }
 \end{lstlisting}
 
-This was useful because the same calorimeter could be used first for predictable tests and then for a more realistic noisy response.. In the perfect case, it provides a clear check that the detector logic works as expected. In the realistic case, the same interface can be used to discuss how measured energies change when a simple detector-resolution effect is introduced. The random-number generator and normal distribution are members of \texttt{Calorimeter}, rather than local variables inside \texttt{detect()}, so the random state is preserved between measurements.
+The random-number generator and normal distribution are members of \texttt{Calorimeter}, rather than local variables inside \texttt{detect()}, so the random state is preserved between measurements.
 
 A further design decision was to perform particle inference in the \texttt{Detector} class, rather than asking each particle to identify itself. Each sub-detector reports a measurement, and the detector combines the pattern of measurements into a likely particle type. This follows the working idea that particles have different detector ``fingerprints'': for example, a muon gives a signal in the tracker, calorimeter and muon chamber, while a neutrino gives no signal.
 
@@ -198,7 +192,7 @@ std::string Detector::infer_particle(const std::map<std::string, double>& measur
 }
 \end{lstlisting}
 
-This function is \texttt{static} because the inference only depends on the measurement map passed into it. It does not need to access the internal state of a particular \texttt{Detector} object. The limitation of this design is that it can only distinguish particles as far as the detector model allows. Since the simulation has only one calorimeter class, it cannot separate electrons from charged hadrons, or photons from neutral hadrons. This is why the function returns combined categories for those cases.
+This function is \texttt{static} because the inference depends only on the measurement map passed into it, not on the internal state of a particular \texttt{Detector} object. The combined categories it returns (``electron or charged hadron'', ``photon or neutral hadron'') reflect a limitation of the single-calorimeter model, discussed in Section~4.
 
 The missing-energy calculation was another important design decision. The aim was to compare the total true energy entering the detector with the total energy measured by the detector, so that invisible particles such as neutrinos appear as missing energy. My first approach would have been to sum every sub-detector reading for each particle, but that double-counts particles seen by more than one layer. For example, a charged hadron can be measured by both the tracker and calorimeter, even though it only has one true energy.
 
@@ -225,11 +219,11 @@ double Detector::calculate_missing_energy(const std::vector<std::shared_ptr<Part
 }
 \end{lstlisting}
 
-The final version therefore uses the largest single detector reading as the detector's best estimate of that particle's measured energy. This matches the simplification used elsewhere in the code: when a sub-detector detects a particle, it reports a whole-particle energy estimate rather than a partial energy deposit. Taking the maximum avoids double-counting and makes the missing-energy result physically sensible for the simplified model.
+The final version therefore uses the largest single detector reading as the detector's best estimate of that particle's measured energy. This matches the simplification used elsewhere in the code: when a sub-detector detects a particle, it reports a whole-particle energy estimate rather than a partial energy deposit. Taking the maximum avoids double-counting and gives a physically sensible result.
 
 \subsection{Advanced C++ Features}
 
-One important advanced C++ design choice was the use of smart pointers to make ownership clearer. The \texttt{Detector} stores its sub-detectors using \texttt{std::unique\_ptr} because each \texttt{Tracker}, \texttt{Calorimeter} or \texttt{MuonChamber} has one clear owner: the detector object that contains it. This also means that sub-detectors cannot accidentally be copied or shared between detector objects. In contrast, processed particles are stored using \texttt{std::shared\_ptr} because the same particle object can be created outside the detector and also recorded inside the detector's processed-particle history.
+Smart pointers are used to make ownership explicit. The \texttt{Detector} stores its sub-detectors using \texttt{std::unique\_ptr}, because each \texttt{Tracker}, \texttt{Calorimeter} or \texttt{MuonChamber} has one clear owner: the detector that contains it. Processed particles, in contrast, are stored using \texttt{std::shared\_ptr}, because the same particle object is created outside the detector and also recorded inside the detector's processed-particle history.
 
 \begin{lstlisting}[caption={Different ownership models in the \texttt{Detector} class.}, label={lst:smartpointers}]
 class Detector {
@@ -259,7 +253,8 @@ std::map<std::string, double> Detector::process(const Particle& particle) const 
     return results;
 }
 \end{lstlisting}
-The return type is a \texttt{std::map<std::string, double>}, which stores each measurement using the sub-detector name as the key and the measured energy as the value. This is useful because later functions, such as particle inference, can look up readings from named detector layers rather than depending on the order of values in a vector. A vector would be shorter, but it would make the code less clear because the meaning of each entry would depend on its position.
+
+The return type is a \texttt{std::map<std::string, double>}, keyed by sub-detector name. This lets later functions, such as particle inference, look up readings by name rather than depending on position in a vector, which would make the meaning of each entry less clear.
 
 File input is handled by \texttt{ParticleReader}, so the set of simulated particles can be changed by editing \texttt{particles.txt} rather than changing and recompiling \texttt{main.cpp}. The reader opens the file, reads it line by line, uses the first token as the particle tag, and then constructs the corresponding derived particle object. This keeps \texttt{main()} shorter and separates input parsing from the detector simulation itself.
 
@@ -278,9 +273,10 @@ else {
 }
 \end{lstlisting}
 
-Together, these features make the program safer and more extensible. Smart pointers express ownership, virtual functions allow the detector to work with different derived sub-detectors through one common interface, \texttt{std::map} keeps named detector readings organised, and exceptions make invalid input fail clearly instead of producing undefined or misleading detector output.
+Together, these features make the program safer and more extensible: smart pointers express ownership, virtual functions provide a common interface across sub-detectors, \texttt{std::map} keeps readings organised by name, and exceptions make invalid input fail clearly.
 
 \section{Results}
+
 The program was tested using the input file \texttt{particles.txt}. This file contains a mixture of charged leptons, neutrinos, taus, photons and hadrons, so that each part of the detector response is exercised. A short extract of the input format is shown in Listing~\ref{lst:particleinput}. The first word on each line gives the particle type, followed by its energy and momentum components, with extra fields where needed, such as neutrino flavour or hadron type.
 
 \begin{lstlisting}[caption={Extract from \texttt{particles.txt}.}, label={lst:particleinput}]
@@ -303,9 +299,9 @@ Measurements:
 Inferred particle: muon
 \end{lstlisting}
 
-This is the expected detector pattern for the simplified model: the muon is charged, so it is seen in the tracker, and it also reaches the muon chamber. The calorimeter response is smaller because the code treats muons as minimum-ionising particles rather than particles that deposit their full energy in the calorimeter.
+This is the expected pattern: the muon is charged, so it is seen in the tracker, and it also reaches the muon chamber. The smaller calorimeter response reflects the treatment of muons as minimum-ionising particles rather than ones that deposit their full energy.
 
-The photon output gives a different pattern. It produces no tracker or muon chamber signal, but it is measured by the calorimeter:
+The photon output gives a different pattern: no tracker or muon chamber signal, but it is measured by the calorimeter:
 
 \begin{lstlisting}[caption={Example detector output for a photon.}, label={lst:photonoutput}]
 Four-momentum (E, p_x, p_y, p_z) = (60, 20, 30, 10) MeV
@@ -335,11 +331,11 @@ The program meets the main aim of the project: it builds a simplified particle-d
 
 The main limitation is that the detector model is still very simplified. The code has one calorimeter class called \texttt{Calorimeter}, rather than separate electromagnetic and hadronic calorimeters. Because of this, the inference logic cannot cleanly distinguish electrons from charged hadrons, or photons from neutral hadrons. A concrete extension would be to derive \texttt{ECAL} and \texttt{HCAL} classes from \texttt{SubDetector}, or from a more specific calorimeter base class. Then electrons and photons could be made to deposit energy mainly in the ECAL, while hadrons could have a different HCAL response.
 
-A second limitation is the tau model. The \texttt{Tau} class stores a lifetime, which is a useful extra particle property, but the code does not simulate tau decays. In the current detector logic, charged taus behave like other charged leptons in the tracker and calorimeter, so they are inferred as ``electron or charged hadron''. A more realistic extension would add decay products, for example allowing a tau to produce lighter leptons, hadrons and neutrinos before the detector response is calculated.
+A second limitation is the tau model. The \texttt{Tau} class stores a lifetime, but the code does not simulate tau decays, so charged taus behave like other charged leptons and are inferred as ``electron or charged hadron''. A more realistic extension would add decay products, allowing a tau to produce lighter leptons, hadrons and neutrinos before the detector response is calculated.
 
-The realistic calorimeter mode is also deliberately simple. It adds Gaussian noise to the measured energy, which is useful for demonstrating random detector smearing, but it can give unphysical negative readings for very low-energy particels. A direct improvement would be to clamp negative measurements to zero or to make the resolution depend on energy, rather than using one fixed noise distribution for every particle.
+The realistic calorimeter mode is also deliberately simple. It adds Gaussian noise to the measured energy, which is useful for demonstrating random detector smearing, but it can give unphysical negative readings for very low-energy particles. A direct improvement would be to clamp negative measurements to zero or to make the resolution depend on energy, rather than using one fixed noise distribution for every particle.
 
-Finally, the inference function currently depends on hard-coded detector names such as \texttt{InnerTracker}, \texttt{ECAL} and \texttt{OuterMuonChamber}. This works for the presnt detector, but it would be less flexible if more sub-detectors were added. A better design would give each sub-detector a type or role, so the inference code could search for tracker, calorimeter and muon responses without depending on exact strings. Overall, the class hierarchy makes these improvements realistic: new particles and new detector layers can be aded by deriving from the existing abstract base classes, while the main detector loop can continue to use the common virtual interface.
+Finally, the inference function currently depends on hard-coded detector names such as \texttt{InnerTracker}, \texttt{ECAL} and \texttt{OuterMuonChamber}. This works for the present detector, but it would be less flexible if more sub-detectors were added. A better design would give each sub-detector a type or role, so the inference code could search for tracker, calorimeter and muon responses without depending on exact strings. Overall, extending the simulation is straightforward. Because the design depends on the abstract \texttt{Particle} and \texttt{SubDetector} interfaces rather than concrete types, each of the improvements above can be made by deriving a new class from an existing abstract base, with no change to the \texttt{Detector} processing loop.
 
 \begin{thebibliography}{9}
 
