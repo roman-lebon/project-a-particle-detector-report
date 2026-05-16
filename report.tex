@@ -137,6 +137,32 @@ double Tracker::detect(const Particle& particle) const {
 
 The tracker uses \texttt{dynamic\_cast} to check whether the base-class \texttt{Particle} reference is actually a \texttt{Lepton} or \texttt{Hadron} with non-zero charge. An alternative would have been to add a virtual \texttt{is\_charged()} function to \texttt{Particle}, but that would require modifying every particle class. The runtime check is less elegant, but it keeps the change local to the detector classes and is used consistently across the sub-detector hierarchy.
 
+The calorimeter was also designed with both a perfect and a realistic mode. The perfect mode is useful for testing because it returns deterministic measurements. The realistic mode adds Gaussian noise to the measurement, which was included because the project brief suggested using random numbers to make the detector response less idealised. This keeps both behaviours inside the same \texttt{Calorimeter} class, controlled by the \texttt{realistic} data member.
+
+\begin{lstlisting}[caption={Perfect and realistic calorimeter response in \texttt{Calorimeter::detect}.}, label={lst:calorimeterdetect}]
+double Calorimeter::detect(const Particle& particle) const {
+    // Neutrinos - invisible
+    if (dynamic_cast<const Neutrino*>(&particle) != nullptr) {
+        return 0.0;
+    }
+
+    // Determine the base measurement
+    double measured = 0.0;
+    if (dynamic_cast<const Muon*>(&particle) != nullptr) {
+        measured = 2.0;
+    } else {
+        measured = particle.get_E();
+    }
+
+    // In realistic mode, add Gaussian measurement noise
+    if (realistic) {
+        measured += noise(generator);
+    }
+
+    return measured;
+}
+\end{lstlisting}
+
 \subsection{Advanced C++ Features}
 % TODO - smart pointers:
 % unique_ptr for owned objects such as sub-detectors and FourMomentum;
